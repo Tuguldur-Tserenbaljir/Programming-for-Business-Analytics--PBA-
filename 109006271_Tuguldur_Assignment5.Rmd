@@ -1,0 +1,174 @@
+---
+title: "109006271_Tuguldur_Assignment5"
+output: html_document
+date: "2024-05-28"
+---
+
+```{r Data/Library loading, echo = FAlSE}
+  library(tidyverse)
+  library(infer)
+  library(reader)
+  cbt <- read_csv("https://bit.ly/3KfrFtx")
+```
+
+```{r Part 1 question 1, echo = FAlSE, show_col_types = FALSE}
+
+cbt <- read_csv("https://bit.ly/3KfrFtx")
+
+# Create new variables
+cbt <- cbt %>%
+  mutate(
+    cbt_assigned = if_else(tpassigned == 1, "CBT", "No CBT"),
+    unhoused_baseline = if_else(homeless_baseline == 1, "Unhoused", "Housed")
+  )
+
+# Calculate the difference in proportions for the baseline measure of sleeping on the streets
+cbt_summary <- cbt %>%
+  group_by(cbt_assigned) %>%
+  summarise(proportion_unhoused = mean(unhoused_baseline == "Unhoused"))
+
+base_diff <- diff(cbt_summary$proportion_unhoused)
+
+# Perform the permutation hypothesis test
+set.seed(02138)
+permutation_test <- cbt %>%
+  specify(unhoused_baseline ~ cbt_assigned, success = "Unhoused") %>%
+  hypothesize(null = "independence") %>%
+  generate(reps = 1000, type = "permute") %>%
+  calculate(stat = "diff in props", order = c("CBT", "No CBT"))
+
+# Calculate the two-sided p-value
+base_p <- permutation_test %>%
+  get_p_value(obs_stat = base_diff, direction = "two-sided")
+
+# Output the base difference and p-value
+list(base_diff = base_diff, base_p = base_p)
+```
+
+```{r Part 1 question 2, echo = FAlSE}
+# Ensure 'tpassigned' is a factor
+cbt$tpassigned <- factor(cbt$tpassigned)
+cbt$attend_80 <- factor(cbt$attend_80)
+
+# Create new variables for actual attendance and baseline housing status
+cbt <- cbt %>%
+  mutate(
+    cbt_attended = if_else(attend_80 == 1, "Attended CBT", "Not Attended"),
+    unhoused_baseline = if_else(homeless_baseline == 1, "Unhoused", "Housed")
+  )
+
+# Filter for participants who were assigned to the CBT treatment
+cbt_cbt_only <- cbt %>%
+  filter(tpassigned == 1)
+
+# Calculate the difference in proportions for the baseline measure of sleeping on the streets
+cbt_attend_summary <- cbt_cbt_only %>%
+  group_by(cbt_attended) %>%
+  summarise(proportion_unhoused = mean(unhoused_baseline == "Unhoused"))
+
+base_diff_attend <- diff(cbt_attend_summary$proportion_unhoused)
+
+# Perform the permutation hypothesis test for actual attendance
+set.seed(02138)
+permutation_test_attend <- cbt_cbt_only %>%
+  specify(response = unhoused_baseline, explanatory = cbt_attended, success = "Unhoused") %>%
+  hypothesize(null = "independence") %>%
+  generate(reps = 1000, type = "permute") %>%
+  calculate(stat = "diff in props", order = c("Attended CBT", "Not Attended"))
+
+# Calculate the two-sided p-value
+base_p_attend <- permutation_test_attend %>%
+  get_p_value(obs_stat = base_diff_attend, direction = "two-sided")
+
+# Output the base difference and p-value
+list(base_diff_attend = base_diff_attend, base_p_attend = base_p_attend)
+```
+
+```{r Part 1 question 4, echo = FAlSE}
+
+cbt <- read_csv("https://bit.ly/3KfrFtx")
+
+
+# Ensure 'tpassigned' is treated as a factor for analysis
+cbt <- cbt %>%
+  mutate(tpassigned = as.factor(tpassigned),
+         fam_asb_st = as.numeric(fam_asb_st))  # Ensure this is numeric if not
+
+# Filter out rows with NA in fam_asb_st
+cbt_clean <- cbt %>% 
+  filter(!is.na(fam_asb_st))
+
+# Calculate the Average Treatment Effect (ATE)
+ate_result <- cbt_clean %>%
+  specify(fam_asb_st ~ tpassigned) %>%
+  calculate(stat = "diff in means", order = c("1", "0"))
+
+ate <- ate_result$stat
+
+# Perform the permutation hypothesis test
+set.seed(02138)
+permutation_test <- cbt_clean %>%
+  specify(fam_asb_st ~ tpassigned) %>%
+  hypothesize(null = "independence") %>%
+  generate(reps = 1000, type = "permute") %>%
+  calculate(stat = "diff in means", order = c("1", "0"))
+
+# Save the null distribution
+ate_null_dist <- permutation_test$stat
+
+# Plot the null distribution and the observed ATE
+ggplot(permutation_test, aes(x = stat)) +
+  geom_histogram(binwidth = .01, color = "black", fill = "white") +
+  geom_vline(aes(xintercept = ate), color = "red", linetype = "dashed", linewidth = 1) +
+  labs(title = "Permutation Distribution of ATE on Short-Term Anti-Social Behavior",
+       x = "Difference in Means",
+       y = "Frequency") +
+  theme_minimal()
+
+# Calculate the two-sided p-value
+ate_p <- get_p_value(permutation_test, obs_stat = ate, direction = "two-sided")
+
+# Output the ATE and p-value
+list(ate = ate, ate_p = ate_p)
+
+```
+
+```{r Part 1 question 5, echo = FAlSE}
+
+# Ensure 'tpassigned' is a factor
+cbt$tpassigned <- factor(cbt$tpassigned)
+
+# Filtering out rows with NA in 'fam_asb_lt'
+cbt_clean <- cbt %>% 
+  filter(!is.na(fam_asb_lt))
+
+# Calculate the Average Treatment Effect (ATE) for long-term anti-social behavior
+ate_lt <- cbt_clean %>%
+  specify(response = fam_asb_lt, explanatory = tpassigned) %>%
+  calculate(stat = "diff in means", order = c("1", "0"))
+
+# Perform the permutation hypothesis test
+set.seed(02138)
+permutation_test_lt <- cbt_clean %>%
+  specify(response = fam_asb_lt, explanatory = tpassigned) %>%
+  hypothesize(null = "independence") %>%
+  generate(reps = 1000, type = "permute") %>%
+  calculate(stat = "diff in means", order = c("1", "0"))
+
+# Save the null distribution
+ate_lt_null_dist <- permutation_test_lt$stat
+
+# Plot the null distribution and the observed ATE with p-value shading
+plot <- visualize(permutation_test_lt) +
+  geom_vline(xintercept = ate_lt$stat, color = "blue", linetype = "dashed") +
+  shade_p_value(obs_stat = ate_lt, direction = "two-sided")
+
+print(plot)
+
+# Calculate the two-sided p-value
+ate_lt_p <- get_p_value(permutation_test_lt, obs_stat = ate_lt, direction = "two-sided")
+
+# Output the ATE and p-value
+list(ate_lt = ate_lt, ate_lt_p = ate_lt_p)
+
+```

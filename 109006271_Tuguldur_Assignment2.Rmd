@@ -1,0 +1,455 @@
+---
+title: "109006271_Assignment2"
+output: pdf_document
+date: "2024-04-17"
+---
+
+```{r Data/Library loading, echo = FAlSE}
+    #Libraries
+    library(ggplot2)
+    library(tidyverse)
+    library(lubridate)
+    library(tidyr)
+    library(dplyr)
+    library(readr)
+    library(knitr)
+    #Data
+    air99 <- read_csv("https://bit.ly/3c4AHbL")
+    air12 <- read_csv("https://bit.ly/3nZicL2")
+    lalonde <- read_csv("https://bit.ly/3sJJKuk")
+```
+
+```{r Part 1 question 1, echo = FAlSE}
+#air99 <- read_csv("https://bit.ly/3c4AHbL")
+#air12 <- read_csv("https://bit.ly/3nZicL2")
+
+#Adding year to respective data files
+air99 <- air99 %>%
+  mutate(Year = 1999) %>%
+  rename(PM2.5 = Sample.Value)
+
+air12 <- air12 %>%
+  mutate(Year = 2012) %>%
+  rename(PM2.5 = Sample.Value)
+
+# Combining datasets
+air_combined <- bind_rows(air99, air12)
+
+# Dropping rows with NA values
+air_combined <- air_combined %>%
+  drop_na()
+
+# Reviewing the structure of air_combined
+glimpse(air_combined)
+
+#OUTPUT
+
+# Rows: 1,335,358
+# Columns: 13
+# $ X..RD           <chr> "RD", "RD", "RD", "RD", "RD", "RD", "RD", "RD", "RD", "RD", "…
+# $ Action.Code     <chr> "I", "I", "I", "I", "I", "I", "I", "I", "I", "I", "I", "I", "…
+# $ State.Code      <chr> "01", "01", "01", "01", "01", "01", "01", "01", "01", "01", "…
+# $ County.Code     <chr> "027", "027", "027", "027", "027", "027", "027", "027", "027"…
+# $ Site.ID         <chr> "0001", "0001", "0001", "0001", "0001", "0001", "0001", "0001…
+# $ Parameter       <dbl> 88101, 88101, 88101, 88101, 88101, 88101, 88101, 88101, 88101…
+# $ POC             <dbl> 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1…
+# $ Sample.Duration <dbl> 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7…
+# $ Unit            <dbl> 105, 105, 105, 105, 105, 105, 105, 105, 105, 105, 105, 105, 1…
+# $ Method          <dbl> 120, 120, 120, 120, 120, 120, 120, 120, 120, 120, 120, 120, 1…
+# $ Date            <dbl> 19990112, 19990115, 19990118, 19990121, 19990124, 19990127, 1…
+# $ PM2.5           <dbl> 8.841, 14.920, 3.878, 9.042, 5.464, 20.170, 11.560, 13.680, 7…
+# $ Year            <dbl> 1999, 1999, 1999, 1999, 1999, 1999, 1999, 1999, 1999, 1999, 1…
+
+```
+
+```{r Part 1 question 2, echo = FAlSE}
+# Calculate summary statistics for PM2.5 for each year
+pm_summary <- air_combined %>%
+  group_by(Year) %>%
+  summarize(
+    mean_PM2.5 = mean(PM2.5),
+    median_PM2.5 = median(PM2.5),
+    min_PM2.5 = min(PM2.5),
+    max_PM2.5 = max(PM2.5)
+  )
+
+# Filter observations where PM2.5 is greater than zero
+air_combined <- air_combined %>%
+  filter(PM2.5 > 0)
+
+# Display the summary statistics
+print(pm_summary)
+
+# #OUTPUT
+# Year mean_PM2.5 median_PM2.5 min_PM2.5   max_PM2.5
+# <dbl> <dbl>     <dbl>       <dbl>        <dbl>
+# 1999	13.738101	11.50000	0	157.10
+# 2012	9.139924	7.63333	-10	908.97
+```
+
+```{r Part 1 question 3, fig.align = 'center', fig.width = 10, fig.height = 3, echo = FAlSE}
+
+# Apply logarithmic transformation to PM2.5 values
+air_combined$log_PM2.5 <- log2(air_combined$PM2.5)
+
+# Convert Year to factor
+air_combined$Year <- as.factor(air_combined$Year)
+
+# Create boxplot
+boxplot <- ggplot(air_combined, aes(x = log_PM2.5, y = Year, fill = as.factor(Year))) +
+  geom_boxplot() +
+  scale_fill_brewer(palette = "Set1") +
+  labs(x = "Log2 PM2.5" , y = "Year of Management") +
+  #fig.align='center'+
+  #fig.width=10+
+  #fig.height=3 +
+  theme_minimal()
+
+# Display the boxplot
+print(boxplot)
+"
+ANALZYE:
+
+Median Values:
+The median for 1999 (red box) is around the log2 PM2.5 value of 3, and for 2012 (blue box), it is around 2.5. Since these are log2 values, the actual PM2.5 concentration for 1999 is 2^3 = 8 µg/m^3, and for 2012 it is 2^2.5 = approximately 5.66 µg/m^3. This suggests that the median PM2.5 concentration decreased from 1999 to 2012.
+
+Spread of the Data:
+The interquartile range (IQR) is broader for 1999 than for 2012, indicating greater variability in PM2.5 measurements among the various monitoring sites in 1999.
+The number of outliers is significant for both years, but especially for 1999, where the outliers extend further from the box, indicating more extreme PM2.5 values.
+
+Potential Implications:
+The decrease in median values indicates an improvement in air quality in terms of PM2.5 concentrations from 1999 to 2012.
+The narrower IQR in 2012 suggests that air quality, with respect to PM2.5 levels, became more uniform across the monitoring sites in the U.S. by 2012.
+The decrease in the number and extremity of outliers from 1999 to 2012 could indicate the effectiveness of air quality regulations and pollution control measures implemented during this period.
+
+"
+```
+
+```{r Part 1 question 4, echo = FAlSE}
+# Subset air_combined for New York State
+ny_data <- air_combined %>%
+  filter(State.Code == "36")
+
+# Create a new column named site.code
+ny_data <- ny_data %>%
+  mutate(site.code = paste0(County.Code, ".", Site.ID))
+
+# Check the structure of ny_data
+glimpse(ny_data)
+
+#OUTPUT
+
+# Rows: 2,258
+# Columns: 15
+# $ X..RD           <chr> "RD", "RD", "RD", "RD", "RD", "RD", "RD", "RD", "RD", "RD", …
+# $ Action.Code     <chr> "I", "I", "I", "I", "I", "I", "I", "I", "I", "I", "I", "I", …
+# $ State.Code      <chr> "36", "36", "36", "36", "36", "36", "36", "36", "36", "36", …
+# $ County.Code     <chr> "001", "001", "001", "001", "001", "001", "001", "001", "001…
+# $ Site.ID         <chr> "0005", "0005", "0005", "0005", "0005", "0005", "0005", "000…
+# $ Parameter       <dbl> 88101, 88101, 88101, 88101, 88101, 88101, 88101, 88101, 8810…
+# $ POC             <dbl> 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, …
+# $ Sample.Duration <dbl> 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, …
+# $ Unit            <dbl> 105, 105, 105, 105, 105, 105, 105, 105, 105, 105, 105, 105, …
+# $ Method          <dbl> 118, 118, 118, 118, 118, 118, 118, 118, 118, 118, 118, 118, …
+# $ Date            <dbl> 19990714, 19990717, 19990720, 19990723, 19990729, 19990801, …
+# $ PM2.5           <dbl> 11.8, 49.4, 8.1, 20.0, 16.9, 18.7, 13.2, 7.5, 11.9, 16.3, 0.…
+# $ Year            <fct> 1999, 1999, 1999, 1999, 1999, 1999, 1999, 1999, 1999, 1999, …
+# $ log_PM2.5       <dbl> 3.5607150, 5.6264391, 3.0179219, 4.3219281, 4.0789513, 4.224…
+# $ site.code       <chr> "001.0005", "001.0005", "001.0005", "001.0005", "001.0005", …
+```
+
+```{r Part 1 question 5, echo = FAlSE}
+# Group the data by site.code and count the number of distinct years for each monitor
+monitor_years <- ny_data %>%
+  group_by(site.code) %>%
+  summarize(year_count = n_distinct(Year))
+
+#Debuggin
+#print(monitor_years)
+
+# Filter monitors with data from both 1999 and 2012
+active_both_year <- monitor_years %>%
+  filter(year_count == 2) %>%
+  pull(site.code)
+
+# View the list of monitors active in both years
+active_both_year
+
+# #OUTPUT
+#  [1] "001.0005" "001.0012" "005.0080" "013.0011" "029.0005" "031.0003" "063.2008"
+#  [8] "067.1015" "085.0055" "101.0003"
+
+```
+
+```{r Part 1 question 6, echo = FAlSE}
+# Filter ny_data for monitors in active_both_year
+active_monitors_data <- ny_data %>%
+  filter(site.code %in% active_both_year)
+
+# Count the number of observations for each monitor
+monitor_observation_count <- active_monitors_data %>%
+  group_by(site.code) %>%
+  summarize(observation_count = n())
+
+# Arrange observations in descending order to identify the most active monitor
+most_active_monitor <- monitor_observation_count %>%
+  arrange(desc(observation_count)) %>%
+  slice(1)  # Select the first row, which corresponds to the monitor with the highest observation count
+
+# View the monitor with the highest number of observations
+most_active_monitor     
+  
+# OUTPUT 
+# site.code observation_count
+# <chr>     <int>
+# 101.0003	138	
+```
+
+```{r Part 1 question 7, echo = FAlSE}
+#library(lubridate)
+
+# Create a subset of ny_data for monitor 101.0003
+air101.0003 <- ny_data %>%
+  filter(site.code == "101.0003")
+
+# Parse the Date column into a date object and extract the day of the year
+air101.0003 <- air101.0003 %>%
+  mutate(Date = ymd(Date),
+         day_of_year = yday(Date))
+
+# Check the structure of air101.0003
+glimpse(air101.0003)
+
+#OUTPUT
+# Rows: 138
+# Columns: 16
+# $ X..RD           <chr> "RD", "RD", "RD", "RD", "RD", "RD", "RD", "RD", "RD", "RD", …
+# $ Action.Code     <chr> "I", "I", "I", "I", "I", "I", "I", "I", "I", "I", "I", "I", …
+# $ State.Code      <chr> "36", "36", "36", "36", "36", "36", "36", "36", "36", "36", …
+# $ County.Code     <chr> "101", "101", "101", "101", "101", "101", "101", "101", "101…
+# $ Site.ID         <chr> "0003", "0003", "0003", "0003", "0003", "0003", "0003", "000…
+# $ Parameter       <dbl> 88101, 88101, 88101, 88101, 88101, 88101, 88101, 88101, 8810…
+# $ POC             <dbl> 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, …
+# $ Sample.Duration <dbl> 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, …
+# $ Unit            <dbl> 105, 105, 105, 105, 105, 105, 105, 105, 105, 105, 105, 105, …
+# $ Method          <dbl> 118, 118, 118, 118, 118, 118, 118, 118, 118, 118, 118, 118, …
+# $ Date            <date> 1999-08-03, 1999-08-04, 1999-08-05, 1999-08-06, 1999-08-12,…
+# $ PM2.5           <dbl> 3.9, 11.8, 12.0, 8.5, 12.1, 24.6, 3.5, 4.2, 20.3, 8.1, 5.9, …
+# $ Year            <fct> 1999, 1999, 1999, 1999, 1999, 1999, 1999, 1999, 1999, 1999, …
+# $ log_PM2.5       <dbl> 1.963474, 3.560715, 3.584963, 3.087463, 3.596935, 4.620586, …
+# $ site.code       <chr> "101.0003", "101.0003", "101.0003", "101.0003", "101.0003", …
+# $ day_of_year     <dbl> 215, 216, 217, 218, 224, 225, 227, 228, 229, 230, 231, 232, …
+```
+
+```{r Part 1 question 8, fig.align='center',echo = FAlSE}
+# Create a plot comparing daily PM2.5 patterns for 1999 and 2012
+pm_plot <- ggplot(air101.0003, aes(x = day_of_year, y = PM2.5)) +
+  geom_point() +
+  #geom_line()+
+  facet_wrap(~ Year, ncol = 2) +  # Separate into two panels, one for each year
+  labs(x = "Day of the Year", y = "PM2.5") +  # Label the axes appropriately
+  theme_minimal()
+
+
+# Display the plot
+print(pm_plot)
+"
+ANALZYE:
+
+The scatter plot shows daily PM2.5 levels for 1999 and 2012. In 1999, levels are often above 10 µg/m^3 with several peaks reaching 25 µg/m^3, indicating more variable and generally higher pollution days. For 2012, the data clusters at lower PM2.5 levels with fewer high pollution days and overall less variability, suggesting improved air quality over the years at this location.
+"
+```
+
+```{r Part 2 question 9, echo = FAlSE}
+
+# Create the balance table
+balance_table <- lalonde %>%
+  group_by(treat) %>%
+  summarize(
+    Average_Age = mean(age, na.rm = TRUE),
+    Average_Education = mean(education, na.rm = TRUE),
+    Proportion_Black = mean(black, na.rm = TRUE),
+    Proportion_Hispanic = mean(hispanic, na.rm = TRUE),
+    Proportion_Married = mean(married, na.rm = TRUE),
+    Proportion_Nodegree = mean(nodegree, na.rm = TRUE)
+  )
+
+# Create a nice-looking table with knitr::kable
+knitr::kable(balance_table, caption = "Covariate Balance Table", col.names = c("Group", "Average Age", "Average Education", "Proportion Black", "Proportion Hispanic", "Proportion Married", "Proportion No Degree"))
+
+"
+ANALYZE:
+
+Most variables appear to be relatively balanced between the treatment and control groups, with some minor differences. The most notable difference is in the 'Proportion No Degree' variable. While the differences in averages for education and marital status are small, these could potentially influence the outcome of interest and should be considered when interpreting the results of the treatment effect. 
+"
+
+```
+
+```{r Part 2 question 10, echo = FAlSE}
+# Create a new variable 'change' for change in earnings from pre- to post-experiment
+lalonde <- lalonde %>%
+  mutate(change = re78 - re75)
+
+# Calculate the average change in earnings for the treated group
+trt_change <- lalonde %>%
+  filter(treat == 1) %>%
+  summarize(Average_Change_Treated = mean(change, na.rm = TRUE))
+
+# Calculate the average change in earnings for the control group
+ctr_change <- lalonde %>%
+  filter(treat == 0) %>%
+  summarize(Average_Change_Control = mean(change, na.rm = TRUE))
+
+# Compute the average treatment effect
+ate <- trt_change$Average_Change_Treated - ctr_change$Average_Change_Control
+ate <- tibble(ATE = ate)
+
+#display the ATE as a table
+knitr::kable(ate, caption = "Average Treatment Effect (ATE)")
+
+# #OUTPUT
+# Average Treatment Effect (ATE)
+# ATE
+# 846.8883
+
+"
+ANALYZE:
+The table output showing an Average Treatment Effect (ATE) of approximately 846.8883 indicates that, on average, individuals in the treatment group experienced an increase in their earnings by about $846.88 from 1975 to 1978 compared to the control group. This positive ATE suggests that the job training program had a beneficial effect on the earnings of those who participated.
+"
+```
+
+```{r Part 2 question 11, echo = FAlSE}
+"
+1) The outcome if the person received the treatment, which in this experiment is the job training program. This outcome reflects the earnings (re78) the person would have after undergoing the job training, which aims to enhance their employability and potential earnings capacity.
+
+2) The outcome if the person did not receive the treatment, meaning they were part of the control group and did not participate in the job training program. This outcome shows what the person's earnings (re78) would have been without the additional skills and knowledge that the training might have provided.
+
+3)The fundamental problem of causal inference in this context refers to the impossibility of observing both potential outcomes for the same individual. We can never see both what someone's earnings would be if they did participate in the training program and if they did not at the same time. 
+"
+```
+
+```{r Part 2 question 12, echo = FAlSE}
+"
+re75 can give valuable starting points for analysis and help to avoid bias of results of treatment group and control group comparison, but it is the real-var outcome re78 that provides the most important information about the success of the job training project evaluation. 
+
+The notion of 'change in earnings (re78 minus re75), as used in the original sentence, explains the combined cumulative impact of treatment throughout the study period, and, hence, directly relates to causal inference in this particular case.
+"
+```
+
+```{r Part 2 question 13, echo = FAlSE}
+
+# Step 1: Prepare the data with the required transformations
+ate_dropout <- lalonde %>%
+  mutate(
+    treatment = recode(treat, `1` = "Treated", `0` = "Control"),
+    dropout = recode(nodegree, `1` = "Dropped out", `0` = "Finished HS")
+  ) %>%
+  group_by(dropout, treatment) %>%
+  summarize(
+    Mean_Change = mean(change, na.rm = TRUE)
+  ) %>%
+  pivot_wider(
+    names_from = treatment,
+    values_from = Mean_Change
+  ) %>%
+  mutate(
+    ATE = `Treated` - `Control`
+  )
+
+# Step 2: Create a nicely formatted table
+knitr::kable(ate_dropout, caption = "Average Treatment Effect by High School Completion Status")
+
+# #OUTPUT
+# Average Treatment Effect by High School Completion Status
+# dropout   	Control	  Treated	   ATE
+# Dropped out	2172.871	2623.151	450.2804
+# Finished HS	1583.760	3689.019	2105.2599
+
+#ANALYZE:
+"
+The highest annual average earnings increase of $450.28 was proven among the people who did not graduate from high school when they were randomly allocated to the job training program group rather than to the control group. That implies that job training course was working positively on the high school drop-out's wages too, although at a short range.
+
+
+While the mean earnings impact of treatment for college graduates was almost unchanged, the earnings impact on high school graduates was substantially more, with an approximate increase of $2105.26 over the control group. Despite the average increase which this group experienced, the annotation suggests that this age group particularly benefited from the job training program.
+
+"
+```
+
+```{r Part 2 question 14, echo = FAlSE}
+# Update lalonde with a new variable age_group
+lalonde <- lalonde %>%
+  mutate(
+    age_group = case_when(
+      age <= 30 ~ "30 and under",
+      age >= 31 & age <= 40 ~ "31 - 40",
+      age > 40 ~ "Over 40"
+    )
+  )
+
+# Create the ate_age tibble with ATE by age_group
+ate_age <- lalonde %>%
+  group_by(age_group, treat) %>%
+  summarize(
+    Mean_Change = mean(change, na.rm = TRUE), .groups = 'drop'
+  ) %>%
+  pivot_wider(
+    names_from = treat,
+    values_from = Mean_Change,
+    names_prefix = "Group"
+  ) %>%
+  rename(
+    Control = `Group0`,
+    Treated = `Group1`
+  ) %>%
+  mutate(
+    ATE = Treated - Control
+  )
+
+# Create a nicely formatted table
+knitr::kable(ate_age, caption = "Average Treatment Effect by Age Group")
+
+# #OUTPUT
+# Average Treatment Effect by Age Group
+# age_group	    Control	  Treated	  ATE
+# 30 and under	2136.730	2736.367	599.6373
+# 31 - 40	      1192.721	3950.871	2758.1497
+# Over 40	      3786.459	3914.669	128.2100
+
+#ANALYZE:
+"
+The data suggests that the job training program had the most substantial positive impact on individuals aged 31-40, with an average treatment effect of approximately $2758.15 increase in earnings, indicating that this age group benefited significantly from the program. 
+
+
+In contrast, while there was an improvement for those 30 and under, and those over 40, the effects were notably smaller, at approximately $599.64 and $128.21, respectively, suggesting that age may be an important factor in the effectiveness of job training interventions."
+
+```
+
+```{r Part 2 question 15, echo = FAlSE}
+
+# Create the barplot of ATE for each age group
+age_plot <- ggplot(ate_age, aes(x = age_group, y = ATE, fill = age_group)) +
+  geom_bar(stat = "identity") +
+  theme_minimal() +
+  labs(
+    title = "Average Treatment Effect by Age Group",
+    x = "Age Group",
+    y = "Average Treatment Effect ($)",
+    fill = "Age Group"
+  )
+
+# Display the plot
+print(age_plot)
+
+#ANALYZE
+"
+
+The barplot visualizes the Average Treatment Effect (ATE) for each age group, revealing a clear pattern: 
+
+Most noteworthy, the People ages about 31-40 earned maximum rise of earnings(green bar).
+
+A shorter red bar marks the '30 and under' and blue bar indicates the participants of over 40 years old, which tends to mean that the program's impacts were less on these age groups.
+
+This if implying that the job training program provided new skills to someone who already has had enough time in the labour force to experience new things and still have enough remaining time in his/her career to gain advantages of these new skills.
+
+"
+```

@@ -1,0 +1,108 @@
+---
+title: "109006271_Assignment4"
+output: pdf_document
+date: "2024-04-17"
+---
+
+```{r Data/Library loading, echo = FAlSE}
+    library(readr)
+    library(tidyr)
+    library(dplyr)
+    library(ggplot2) 
+    library(readr)
+    library(broom)
+    library(knitr)
+    library(infer)
+    library(purrr) 
+    rags <- read_csv("https://bit.ly/3GYRblb")
+```
+
+
+```{r Part 1 question 1, echo = FAlSE}
+rags <- read_csv("https://bit.ly/3GYRblb")
+# Subset data to include only respondents who are either Optimists or Pessimists
+rags <- rags %>%
+  filter(optimism_index >= 3 | optimism_index < 3)
+
+# Create new variables
+rags <- rags %>%
+  mutate(treatment = if_else(condition2 == 1, "Rags to Riches", "Control"),
+         optimist = if_else(optimism_index >= 3, "Optimist", "Pessimist"))
+
+# Calculate differences in views on economic mobility
+mobility_diff <- rags %>%
+  group_by(treatment) %>%
+  summarize(mean_mobility = mean(mobility, na.rm = TRUE)) %>%
+  pivot_wider(names_from = treatment, values_from = mean_mobility) %>%
+  mutate(ATE = `Rags to Riches` - Control)
+
+# Print the result
+print(mobility_diff)
+```
+
+```{r Part 1 question 2, echo = FAlSE}
+
+# Read and prepare the data (assuming it's not already loaded)
+rags <- read_csv("https://bit.ly/3GYRblb") %>%
+  mutate(treatment = if_else(condition2 == 1, "Rags to Riches", "Control"),
+         optimist = if_else(optimism_index >= 3, "Optimist", "Pessimist")) %>%
+  filter(optimism_index >= 3 | optimism_index < 3)  # Ensuring optimists and pessimists only
+
+# Set seed for reproducibility
+set.seed(2023)
+
+# Generate bootstrap replications of the ATE
+ate_boots <- rags %>%
+  specify(response = mobility, explanatory = treatment) %>%
+  hypothesize(null = "independence") %>%
+  generate(reps = 1000, type = "bootstrap") %>%
+  calculate(stat = "diff in means", order = c("Rags to Riches", "Control"))
+
+# Calculate the 95% confidence interval using the percentile method
+ate_ci_95 <- ate_boots %>%
+  get_confidence_interval(level = 0.95, type = "percentile")
+
+# Plot the bootstrap distribution and the confidence interval
+ggplot(ate_boots, aes(x = stat)) +
+  geom_histogram(aes(y = ..density..), bins = 30, fill = "blue", alpha = 0.5) +
+  geom_vline(xintercept = unlist(ate_ci_95), col = "red", linewidth = 1) +
+  labs(title = "Bootstrap Distribution of ATE", x = "ATE", y = "Density")
+```
+
+```{r Part 1 question 4, echo = FAlSE}
+rags <- rags %>%
+  mutate(
+    treatment = if_else(condition2 == 1, "Rags to Riches", "Control"),
+    optimist = if_else(optimism_index >= 3, "Optimist", "Pessimist")
+  )
+
+#Debuggin, Confirm the variables exist
+#print(colnames(rags))
+
+# Compute ATE for Optimists
+ate_opt <- rags %>%
+  filter(optimist == "Optimist") %>%
+  group_by(treatment) %>%
+  summarize(mean_mobility = mean(mobility, na.rm = TRUE)) %>%
+  summarise(ATE_Opt = mean_mobility[treatment == "Rags to Riches"] - mean_mobility[treatment == "Control"])
+
+# Compute ATE for Pessimists
+ate_pes <- rags %>%
+  filter(optimist == "Pessimist") %>%
+  group_by(treatment) %>%
+  summarize(mean_mobility = mean(mobility, na.rm = TRUE)) %>%
+  summarise(ATE_Pes = mean_mobility[treatment == "Rags to Riches"] - mean_mobility[treatment == "Control"])
+
+# Calculate the interaction difference
+ate_diff <- ate_opt$ATE_Opt - ate_pes$ATE_Pes
+
+# Create the output tibble
+ate_optimist <- tibble(
+  ATE_Opt = ate_opt$ATE_Opt,
+  ATE_Pes = ate_pes$ATE_Pes,
+  ATE_Diff = ate_diff
+)
+
+# Display the tibble
+print(ate_optimist)
+```

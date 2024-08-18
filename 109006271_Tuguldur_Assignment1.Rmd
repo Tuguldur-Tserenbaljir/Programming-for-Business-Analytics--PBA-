@@ -1,0 +1,198 @@
+---
+title: "Assignment1"
+output: pdf_document
+date: "2024-03-15"
+---
+
+```{r}
+    #install the packages
+    install.packages("lubridate")  
+    install.packages("gapminder")  
+    install.packages("dplyr")
+    install.packages("tidyverse")
+    #Make sure the packages are loaded
+    require(lubridate)
+    require(gapminder)
+```
+
+```{r Part 1 question 1, echo = FAlSE}
+# Load CSV file with stringsAsFactors parameter set to FALSE
+data <- read.csv("C:\\Users\\btuud\\Downloads\\online_retail.csv", stringsAsFactors = FALSE)
+
+# View the first few rows of the data set, to make sure the data is correct
+head(data)
+str(data)
+```
+
+
+```{r Part 1 question 2, echo = FAlSE}
+# Convert InvoiceDate to date class
+data$InvoiceDate <- as.POSIXct(data$InvoiceDate, format = "%m/%d/%y %H:%M")
+
+# Format the date to the desired format
+data$InvoiceDate <- format(data$InvoiceDate, "%m/%d/%y %H:%M")
+
+# Verify the conversion
+str(data$InvoiceDate)
+# chr [1:541909] "12/01/10 08:26" "12/01/10 08:26" "12/01/10 08:26"
+
+# Filter transactions from July to August 2011
+filtered_data <- subset(data, InvoiceDate >= as.Date("07-01-11") & InvoiceDate < as.Date("09-01-11"))
+
+# View the filtered data
+head(filtered_data)
+```
+
+
+```{r Part 1 question 3, echo = FAlSE}
+#1 Mean of Quantity and UnitPrice
+quantity_mean <- mean(filtered_data$Quantity)
+
+# Calculate the mean of UnitPrice column
+unit_price_mean <- mean(filtered_data$UnitPrice)
+
+# Print the results
+print(quantity_mean)
+print(unit_price_mean)
+
+#2 data type of each column
+
+#$ InvoiceNo  : chr  "536365" "536365" "536365" "536365" ...
+#$ StockCode  : chr  "85123A" "71053" "84406B" "84029G" ...
+#$ Description: chr  "WHITE HANGING HEART T-LIGHT HOLDER" "WHITE METAL LANTERN" "CREAM CUPID #HEARTS COAT HANGER" "KNITTED UNION FLAG HOT WATER BOTTLE" ...
+#$ Quantity   : int  6 6 8 6 6 2 6 6 6 32 ...
+#$ InvoiceDate: chr  "12/1/10 8:26" "12/1/10 8:26" "12/1/10 8:26" "12/1/10 8:26" ...
+#$ UnitPrice  : num  2.55 3.39 2.75 3.39 3.39 7.65 4.25 1.85 1.85 1.69 ...
+#$ CustomerID : int  17850 17850 17850 17850 17850 17850 17850 17850 17850 13047 ...
+#$ Country    : chr  "United Kingdom" "United Kingdom" "United Kingdom" "United Kingdom"
+
+#3 Compute the number of unique values in each column
+unique_counts <- sapply(filtered_data, function(x) length(unique(x)))
+
+# Print the results
+print(unique_counts)
+```
+
+```{r Part 1 question 4, echo = FAlSE}
+library(dplyr)
+
+# Assuming filtered_data is your dataset
+
+# 1 Subset the data for transactions in the U.K., Netherlands, and Australia
+subset_data <- filtered_data %>%
+  filter(Country %in% c("United Kingdom", "Netherlands", "Australia"))
+
+# Double check, debugging
+#australia_data <- filter(filtered_data, Country == "Australia")
+# Print out the Australia data
+#print(australia_data)
+
+# 2) Report the average and standard deviation of UnitPrice for each country
+unitprice_stats <- subset_data %>%
+  group_by(Country) %>%
+  summarise(
+    avg_UnitPrice = mean(UnitPrice, na.rm = TRUE),
+    sd_UnitPrice = sd(UnitPrice, na.rm = TRUE)
+  )
+
+#3 Report the number of unique transactions and customers in  countries
+unique_counts <- subset_data %>%
+  group_by(Country) %>%
+  summarise(
+    unique_transactions = n_distinct(InvoiceNo),
+    unique_customers = n_distinct(CustomerID)
+  )
+
+# Print the results
+#print("Average and Standard Deviation of UnitPrice for each country:")
+print(unitprice_stats)
+
+#print("Number of unique transactions and customers in these countries:")
+print(unique_counts)
+
+```
+
+```{r Part 1 question 5, echo = FAlSE}
+# Assuming filtered_data is your dataset
+
+# Extract the first character of the InvoiceNo column
+invoice_prefix <- substr(filtered_data$InvoiceNo, 1, 1)
+
+# Find the unique CustomerIDs with 'C'
+cust_refund <- unique(filtered_data$CustomerID[invoice_prefix == 'C'])
+
+# Count the number of customers who made a refund
+num_refund_customers <- length(cust_refund)
+
+# Print Results
+print(paste("Number of customers who made a refund:", num_refund_customers))
+print("Customer IDs who made a refund:")
+print(cust_refund)
+```
+
+```{r Part 1 question 6, echo = FAlSE}
+# Assuming your dataset is named 'data'
+
+# Filter transactions with missing CustomerID
+missing_customers_data <- subset(data, is.na(CustomerID))
+
+# 1) Create a variable called Sales by multiplying Quantity and UnitPrice
+missing_customers_data$Sales <- missing_customers_data$Quantity * missing_customers_data$UnitPrice
+
+# 2) Calculate the total sales amount for transactions where CustomerID is missing
+total_sales <- sum(missing_customers_data$Sales, na.rm = TRUE)
+
+# Print the total sales amount
+print(paste("Total sales amount for transactions with missing CustomerID:", total_sales))
+
+```
+
+```{r Part 1 question 7, echo = FAlSE}
+#install.packages("tidyverse")
+
+# Load required packages
+library(gapminder)
+library(tidyverse)
+
+#1) Using glimse on the dataset
+glimpse(gapminder)
+#$ country   <fct> "Afghanistan", "Afghanistan", "Afghanistan", "Afghanistan", "Afgha…
+#$ continent <fct> Asia, Asia, Asia, Asia, Asia, Asia, Asia, Asia, Asia, Asia, Asia, …
+#$ year      <int> 1952, 1957, 1962, 1967, 1972, 1977, 1982, 1987, 1992, 1997, 2002, …
+#$ lifeExp   <dbl> 28.801, 30.332, 31.997, 34.020, 36.088, 38.438, 39.854, 40.822, 41…
+#$ pop       <int> 8425333, 9240934, 10267083, 11537966, 13079460, 14880372, 12881816…
+#$ gdpPercap <dbl> 779.4453, 820.8530, 853.1007, 836.1971, 739.9811, 786.1134, 978.01…
+
+# 2) Reporting the dimension of the data
+# Use cat to fetch, use nrow and ncol functions
+cat("Number of rows: ", nrow(gapminder), "\n")
+cat("Number of columns: ", ncol(gapminder), "\n")
+
+#3)identifying factors.
+factors <- sapply(gapminder, is.factor)
+cat("Factors in the dataset: ", names(gapminder)[factors], "\n")
+```
+
+```{r Part 1 question 8, echo = FAlSE}
+# Load required packages
+library(ggplot2)
+
+# Get graph data to plot 
+data_plot <- gapminder %>%
+  select(continent, year, lifeExp)
+
+# Create box plot using ggplot
+ggplot(data = data_plot, aes(x = continent, y = lifeExp)) +
+  geom_boxplot() +  # Use boxplot for visualization
+  labs(x = "Continent", y = "Life Expectancy at Birth") +  # Set axis labels
+  ggtitle("Life Expectancy at Birth by Continent")   # Set plot title
+
+```
+
+```{r Part 1 question 9, echo = FAlSE}
+#1 Looking at the previous plot, which continent has the highest median life expectancy? 
+#Looking at the previous plot, Oceania continent has the highest median life expectancy. 
+
+#2 Which part of the boxplot can we determine this from?
+#Because their median life expectancy line in the box plots is the highest. 
+```

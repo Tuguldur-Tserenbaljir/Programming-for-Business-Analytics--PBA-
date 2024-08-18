@@ -1,0 +1,156 @@
+---
+title: "109006271_Assignment2"
+output: pdf_document
+date: "2024-04-17"
+---
+
+
+```{r Data/Library loading, echo = FAlSE}
+    library(readr)
+    library(readr)
+    library(dplyr)
+    library(ggplot2) 
+    library(readr)
+    library(broom)
+    library(knitr)
+    turnout <- read_csv("https://bit.ly/3RFo38k")
+```
+
+
+```{r Part 1 question 1, echo = FAlSE}
+
+# View the first few rows of the dataset
+head(turnout)
+
+# Determine the range of years included in the dataset
+years <- range(turnout$year)  # Assuming the column with years is named 'year'
+
+# Count the number of distinct states in the dataset
+states <- length(unique(turnout$state))  # Assuming the column with states is named 'state'
+
+# Output the results
+print(paste("Years included in the dataset:", years[1], "to", years[2]))
+print(paste("Number of different states included:", states))
+```
+
+
+```{r Part 1 question 2, echo = FAlSE}
+
+# Load the data
+turnout <- read_csv("https://bit.ly/3RFo38k", show_col_types = FALSE)
+
+# Prepare the data
+turnout <- turnout %>%
+  mutate(is_black_candidate = ifelse(black_candidate == 1, "Yes", "No"))
+
+# Generate the boxplot
+plot <- ggplot(turnout, aes(x = is_black_candidate, y = black_turnout, fill = "indianred1")) +
+  geom_boxplot() +
+  labs(x = "One or more Black candidates", y = "Voter turnout (Black voters)") +
+  theme_minimal() +
+  scale_fill_identity()
+
+# Save the plot
+ggsave("turnout_box.png", plot, width = 6, height = 3, units = "in")
+
+# Output the plot to check it
+print(plot)
+
+
+#The boxplot reveals that the median voter turnout for Black voters is marginally higher when one or more Black candidates are present, as shown by the median line in the "Yes" #category compared to the "No" category. While the overall range of voter turnout is similar in both scenarios, there is slightly greater variability when Black candidates are #involved, particularly at the upper end of turnout. Additionally, the presence of outliers in the "No" category, where voter turnout is exceptionally high even without Black #candidates, suggests that factors other than the presence of co-ethnic candidates also play a significant role in influencing voter turnout.
+
+```
+
+
+```{r Part 1 question 3, echo = FAlSE}
+# Load the data
+turnout <- read_csv("https://bit.ly/3RFo38k")
+
+# Running the linear regression
+lm_1 <- lm(black_turnout ~ black_candidate, data = turnout)
+
+# Create a nicely formatted table of coefficients
+lm_1 |>
+  broom::tidy() |>
+  select(term, estimate) |>
+  knitr::kable(digits = 2)
+
+summary(lm_1)$r.squared  # This will output the R^2 value
+
+
+```
+
+
+```{r Part 1 question 4, echo = FAlSE}
+# Prepare the data with appropriate labels
+turnout <- turnout %>%
+  mutate(candidate_type = ifelse(black_candidate == 1, "Coethnic candidate", "No coethnic candidate"))
+
+# Generate the scatter plot
+turnout_scatter <- ggplot(turnout, aes(x = black_share, y = black_turnout, color = candidate_type)) +
+  geom_point(alpha = 0.7) +
+  labs(x = "Share of Black voting-age population", y = "Black voter turnout", color = "Candidate Type") +
+  theme_minimal()
+
+# Save the plot
+ggsave("turnout_scatter.png", turnout_scatter, width = 6, height = 4, units = "in")
+
+# Display the plot
+print(turnout_scatter)
+
+```
+
+
+```{r Part 1 question 5, echo = FAlSE}
+# Running the linear regression
+lm_2 <- lm(black_turnout ~ black_share, data = turnout)
+
+# Create a nicely formatted table of coefficients
+coefficients_table <- lm_2 |>
+  broom::tidy() |>
+  select(term, estimate) |>
+  knitr::kable(digits = 2)
+
+# Print the table
+print(coefficients_table)
+summary(lm_2)$r.squared  # This will output the R^2 value
+```
+
+
+```{r Part 1 question 6, echo = FAlSE}
+# Load the data
+turnout <- read_csv("https://bit.ly/3RFo38k")
+
+# Running the multiple regression
+lm_3 <- lm(black_turnout ~ black_candidate + black_share, data = turnout)
+
+# Create a nicely formatted table of coefficients
+coefficients_table <- lm_3 |>
+  broom::tidy() |>
+  select(term, estimate) |>
+  knitr::kable(digits = 2)
+
+# Print the table
+print(coefficients_table)
+
+# Output R^2 and Adjusted R^2
+cat("R-squared: ", summary(lm_3)$r.squared, "\n")
+cat("Adjusted R-squared: ", summary(lm_3)$adj.r.squared, "\n")
+```
+
+
+```{r Part 1 question 9, echo = FAlSE}
+
+# Load the data
+turnout <- read_csv("https://bit.ly/3RFo38k")
+
+# Running the regression with state as a categorical predictor
+lm_states <- lm(black_turnout ~ factor(state), data = turnout)
+
+# Print the coefficients to see which state is omitted and the effect of others
+print(lm_states)
+
+# To identify the omitted state explicitly
+cat("Omitted state: ", setdiff(unique(turnout$state), names(coef(lm_states))[2:length(coef(lm_states))]), "\n")
+
+```
